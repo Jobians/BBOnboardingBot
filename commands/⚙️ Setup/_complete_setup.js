@@ -19,10 +19,16 @@ CMD*/
  * @param {string} sheetName
  */
 function fetchSheet(sheetName) {
-  const spreadsheetId = settings.SPREADSHEET_ID;
+  const spreadsheetId = AdminPanel.getFieldValue({
+    panel_name: 'BotConfig',
+    field_name: 'SPREADSHEET_ID'
+  });
+  
   if (!spreadsheetId) return;
 
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
+    sheetName
+  )}`;
 
   HTTP.get({
     url: url,
@@ -38,6 +44,12 @@ if (content) {
   Bot.sendMessage(`✅ Sheet fetched successfully: ${params}`);
 
   // Parse CSV content into row objects
+  // NOTE: The following functions are defined in the master command "@" and available globally in this script:
+  //   - parseCsv()
+  //   - parseLessons()
+  //   - parseQuizzes()
+  //   - parseMeta()
+  //   - validateImportedData()
   const rows = parseCsv(content);
 
   // Choose the appropriate parser based on sheet name
@@ -53,9 +65,12 @@ if (content) {
       parsedData = parseMeta(rows);
       break;
     default:
-      Bot.sendMessage(`⚠️ Unknown sheet: ${params}`);
+      throw new Error(`⚠️ Unknown sheet: ${params}`);
       return;
   }
+  
+  // Validate parsed data before saving
+  validateImportedData(params, parsedData);
 
   // Save parsed data into bot storage
   Bot.setProp({
@@ -79,3 +94,4 @@ function fetchAllSheets() {
 
 // Start fetching all sheets
 fetchAllSheets();
+

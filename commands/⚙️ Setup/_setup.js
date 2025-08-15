@@ -15,7 +15,7 @@ Bot.sendMessage('⚠️ Setup command NOT executed. See /setup code for details.
 // return
 
 // Define supported languages for the bot
-const languages = ['en', 'es'];
+const languages = ['en'];
 
 // Run language setup commands for each language
 let cmdName;
