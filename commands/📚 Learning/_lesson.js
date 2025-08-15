@@ -10,79 +10,148 @@
   group: 
 CMD*/
 
+// This function removes underscores from text to prevent Markdown issues
 function escapeMarkdown(text) {
-  return text.replace(/(\*\*[^\*]*?)_([^\*]*?\*\*)/g, '$1\\_$2');
+  return text.replace(/_/g, '');
 }
 
-// Parse params: "L1" or "L1 2"
-let [lessonId, stepNumberParam] = params.split(' ');
-let stepNumber = stepNumberParam ? Number(stepNumberParam) : 1;
+// Split parameters from the command (e.g., "L1 2" becomes "L1" and "2")
+let [lessonId, stepNumberInput] = params.split(' ');
 
+// If step number is not provided, default to step 1
+let stepNumber = stepNumberInput ? Number(stepNumberInput) : 1;
+
+// Get all lessons saved in Bot properties
 const lessons = Bot.getProp('Lessons') || [];
+
+// Find the lesson by ID
 const lesson = lessons.find(l => l.id === lessonId);
-if (!lesson) return Api.sendMessage(`⚠️ Lesson ${lessonId} not found.`);
-
-const step = lesson.steps.find(s => Number(s.stepNumber) === Number(stepNumber));
-if (!step) {
-    // End of lesson → show quiz if exists
-    const quizzes = Bot.getProp('Quizzes') || [];
-    const lessonQuiz = quizzes.filter(q => q.lesson_id === lessonId);
-    if (lessonQuiz.length) return sendQuiz(lessonQuiz, 0); // start first quiz
-    return Api.sendMessage('✅ You have completed this lesson!');
+if (!lesson) {
+  return Bot.sendMessage(`⚠️ Lesson ${lessonId} not found.`);
 }
 
-// Combine description with first step text
-let text = step.text;
+// Find the specific step in the lesson
+const step = lesson.steps.find(s => Number(s.stepNumber) === stepNumber);
+if (!step) return; // Should never happen
+
+// Build the step message
+let messageText = `Step ${stepNumber}: ${step.text}`;
+
+// If it's the first step, add the lesson description
 if (stepNumber === 1 && lesson.description) {
-    text = `📝 ${lesson.description}\n\nStep ${stepNumber}: ${step.text}`;
-} else {
-    text = `Step ${stepNumber}: ${step.text}`;
+  messageText = `📝 ${lesson.description}\n\nStep ${stepNumber}: ${step.text}`;
 }
 
-// Append video/help links
-if (step.videoUrl) text += `\n\n🎬 [Watch Video](${step.videoUrl})`;
-if (step.helpText) text += `\n\nℹ️ [Help Article](${step.helpText})`;
+// Add optional video and help links
+if (step.videoUrl) {
+  messageText += `\n\n🎬 [Watch Video](${step.videoUrl})`;
+}
+if (step.helpText) {
+  messageText += `\n\nℹ️ [Help Article](${step.helpText})`;
+}
 
-// Escape for Markdown (classic)
-text = escapeMarkdown(text);
-Bot.inspect(text)
+// Clean the message text from Markdown-breaking characters
+messageText = escapeMarkdown(messageText);
 
-// Navigation + Extra buttons
+// Set up buttons for the message
 let buttons = [];
-if (step.extra?.reply_markup?.inline_keyboard)
-    buttons = step.extra.reply_markup.inline_keyboard;
 
+// Add custom buttons from the step (if available)
+if (step.extra?.reply_markup?.inline_keyboard) {
+  buttons = step.extra.reply_markup.inline_keyboard;
+}
+
+// Add navigation buttons
 const navButtons = [];
-if (Number(stepNumber) > 1)
-    navButtons.push({ text: '⬅️ Back', callback_data: `/lesson ${lessonId} ${Number(stepNumber)-1}` });
-if (Number(stepNumber) < lesson.steps.length)
-    navButtons.push({ text: 'Next ➡️', callback_data: `/lesson ${lessonId} ${Number(stepNumber)+1}` });
-if (navButtons.length) buttons.push(navButtons);
 
-// Always use edit mode because it's a callback
+if (stepNumber > 1) {
+  navButtons.push({
+    text: '⬅️ Back',
+    callback_data: `/lesson ${lessonId} ${stepNumber - 1}`
+  });
+}
+
+if (stepNumber < lesson.steps.length) {
+  navButtons.push({
+    text: 'Next ➡️',
+    callback_data: `/lesson ${lessonId} ${stepNumber + 1}`
+  });
+} else {
+  // If it's the last step, show a "Take Quiz" or "Done" button
+  const quizzes = Bot.getProp('Quizzes') || [];
+  const lessonQuiz = quizzes.filter(q => q.lessonId === lessonId);
+
+  if (lessonQuiz.length > 0) {
+    navButtons.push({
+      text: '📝 Take Quiz',
+      callback_data: `/quiz ${lessonId}`
+    });
+  } else {
+    navButtons.push({
+      text: '✅ Done',
+      callback_data: `/menu`
+    });
+  }
+}
+
+// Add navigation buttons if they exist
+if (navButtons.length > 0) {
+  buttons.push(navButtons);
+}
+
+// Get chat and message info
+const chatId = request.message.chat.id;
 const messageId = request.message.message_id;
 
-// Send edited message
-if (step.photo) {
-    Api.editMessageMedia({
-        message_id: messageId,
-        chat_id: request.message.chat.id,
-        media: {
-            type: 'photo',
-            media: step.photo,
-            caption: text,
-            parse_mode: 'Markdown'
-        },
-        reply_markup: { inline_keyboard: buttons }
+// Check if the step has a photo, and whether the original message does too
+const hasPhotoInStep = !!step.photo;
+const originalMessageHadPhoto = !!request.message.photo;
+
+// If the media type has changed (photo <-> no photo), delete and send a new message
+if ((hasPhotoInStep && !originalMessageHadPhoto) || (!hasPhotoInStep && originalMessageHadPhoto)) {
+  Api.deleteMessage({ chat_id: chatId, message_id: messageId });
+
+  if (hasPhotoInStep) {
+    // Send a new photo message
+    Api.sendPhoto({
+      chat_id: chatId,
+      photo: step.photo,
+      caption: messageText,
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
     });
+  } else {
+    // Send a new text message
+    Api.sendMessage({
+      chat_id: chatId,
+      text: messageText,
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  }
 } else {
-    Api.editMessageText({
-        message_id: messageId,
-        chat_id: request.message.chat.id,
-        text: text,
-        parse_mode: 'Markdown',
-        reply_markup: { inline_keyboard: buttons }
+  // If media type is same, just edit the message
+  if (hasPhotoInStep) {
+    Api.editMessageMedia({
+      chat_id: chatId,
+      message_id: messageId,
+      media: {
+        type: 'photo',
+        media: step.photo,
+        caption: messageText,
+        parse_mode: 'Markdown'
+      },
+      reply_markup: { inline_keyboard: buttons }
     });
+  } else {
+    Api.editMessageText({
+      chat_id: chatId,
+      message_id: messageId,
+      text: messageText,
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  }
 }
 
 // Save user progress

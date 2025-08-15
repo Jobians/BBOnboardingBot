@@ -15,12 +15,12 @@ const settings = AdminPanel.getPanelValues('BotConfig');
 
 // Prepare SmartBot parameters
 const smartBotParams = {
-  currency: "XRP"
+  currency: "XP"
 };
 
 // Initialize SmartBot instance
 let smartBot = new SmartBot({
-  debug: true,
+  // debug: true,
   params: smartBotParams
 });
 
@@ -186,4 +186,42 @@ function parseMeta() {
     language: 'en',
     updatedAt: '15.07.2025'
   };
+}
+
+/**
+ * Validates parsed data before saving.
+ * Only Lessons sheet has photo/text validation.
+ * Generic sheets only checked if data is an array.
+ * Throws an error if validation fails.
+ * @param {string} sheetName
+ * @param {Array|Object} data
+ */
+function validateImportedData(sheetName, data) {
+  let errors = [];
+
+  if (sheetName === 'Lessons') {
+    data.forEach((lesson, lessonIndex) => {
+      if (!lesson.id) {
+        errors.push(`Lesson ${lessonIndex + 1}: missing "id"`);
+      }
+
+      if (lesson.steps) {
+        lesson.steps.forEach((step, stepIndex) => {
+          // Rule: photo → text <= 1024 chars
+          if (step.photo && step.text && step.text.length > 1024) {
+            errors.push(`Lesson ${lesson.id}, Step ${stepIndex + 1}: caption too long (${step.text.length} chars)`);
+          }
+        });
+      }
+    });
+  } else if (Array.isArray(data)) {
+    // For other sheets, just ensure data is an array (no extra validation)
+    if (data.length === 0) {
+      errors.push(`Sheet "${sheetName}" contains no rows`);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Validation failed for "${sheetName}":\n` + errors.join("\n"));
+  }
 }
