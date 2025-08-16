@@ -1,84 +1,59 @@
-# BBOnboardingBot - chat bot
-It is repository for chat bot: [@BBOnboardingBot](https://t.me/BBOnboardingBot)
+# **BB GuideBot Contest Entry**
 
-## What it is?
-This repository can be imported to [Bots.Business](https://bots.business) as a worked chat bot.
+> The ultimate onboarding bot for the **Bots.Business** ecosystem — built for this contest.
 
-[Bots.Business](https://bots.business) - it is probably the first CBPaaS - Chat Bot Platform as a Service.
+---
 
-A CBPaaS is a cloud-based platform that enables developers to create chatbots without needing to build backend infrastructure.
+## 📸 Bot Showcase
 
-## Create your own bot for Telegram from this Git repo
+![Bot Showcase Screenshot](https://i.ibb.co/PsTJc5jx/bbguide-previews-jt.png)
 
-How to create bot?
-1. Create bot with [@BotFather](https://telegram.me/BotFather) and take Secret Token
-2. Create bot in App and add Secret Token
-3. Add Public Key from App as [Deploy key](https://developer.github.com/v3/guides/managing-deploy-keys/#deploy-keys) with read access (and write access for bot exporting if you need it)
-4. Do import for this git repo
+---
 
-Now you can talk with yours new Telegram Bot
+## ⚙️ Bot Settings — Easy Setup
 
-See [more](https://help.bots.business/getting-started)
+![Bot Settings Screenshot](https://i.ibb.co/bMs7ddBX/bbguide-panel-jt.png)
 
-## Commands - in commands folder
-File name - it is command name (Bot it can be rewritten in command description)
+---
 
-Command can have: `name`, `help`, `aliases` (second names), `answer`, `keyboard`, `scnarios` (for simple logic) and other options.
+## 📖 Overview
 
-### Command description
-It is file header:
+This bot is an **interactive learning assistant** for the Bots.Business (BB) platform.  
+It guides newcomers step-by-step — from their **first launch** to **advanced Bot JavaScript scripting** — with built-in **FAQs**, **live support links**, and **quizzes**.
 
-    /*CMD
-      command: /test
-      help: this is help for ccommand
-      need_reply: [ true or false here ]
-      auto_retry_time: [ time in sec ]
-      answer: it is example answer for /test command
-      keyboard: button1, button2
-      aliases: /test2, /test3
-    CMD*/
+The bot is designed to:
+- Support **multiple languages** (English by default)
+- Dynamically load lessons from a Google Sheet
+- Offer clean navigation with **Next / Back / Menu** buttons
+- Track user progress and optionally quiz them at the end of each lesson
 
-See [more](https://help.bots.business/commands)
+---
 
-### Command body
-It is command code in JavaScript.
-Use Bot Java Script for logic in command.
+## 🛠 Features
 
-For example:
-> Bot.sendMessage(2+2);
+- **📚 Lessons Library** — browse structured lessons dynamically loaded from the Google Sheet template  
+- **↔️ Step Navigation** — “⬅️ Back” and “Next ➡️” buttons with progress tracking  
+- **🎥 Multimedia Support** — photo steps, YouTube video links, and help article links  
+- **📝 Quizzes** — optional quiz after each lesson  
+- **🌍 Multilingual** — language files managed via SmartBot config  
+- **💬 Support Access** — contact support or read FAQs from within the bot  
+- **✅ Clean BJS Code** — no SmartBot keyboard parsing issues, all inline buttons generated safely  
 
-See [more](https://help.bots.business/scenarios-and-bjs)
+---
 
+## 🚀 Running the Bot
 
-## Libraries - in libs folder
-You can store common code in the libs folder. File name - it is library name.
+1. Create a bot in Telegram via [@BotFather](https://t.me/BotFather)  
+2. Deploy the code to your **Bots.Business** account  
+3. In **Bot Settings → Admin Panel**, paste your **Google Spreadsheet ID**  
+4. The bot will **auto-import** and **parse** the lessons — no extra work needed  
+5. Start the bot with `/start`
 
-For example code in myLib.js:
+---
 
-    function hello(){ Bot.sendMessage("Hello from lib!") }
-    function goodbye(name){ Bot.sendMessage("Goodbye, " + name) }
+## 💡 Credits
 
-    publish({
-      sayHello: hello,
-      sayGoodbyeTo: goodbye
-    })
+Built by **JOBIANSTECHIE** as part of the **BB GuideBot Contest**.  
+Special thanks to the Bots.Business team for the platform & inspiration.
 
-then you can run in any bot's command:
-
-    Libs.myLib.hello()
-    Libs.myLib.sayGoodbyeTo("Alice")
-
-See [more](https://help.bots.business/git/library)
-
-## Other bots example
-See other bots examples in the [github](https://github.com/bots-business?utf8=✓&tab=repositories&q=&type=public&language=javascript) or in the [Bot Store](https://bots.business/)
-
-
-## Other help
-[Help.bots.business](https://help.bots.business)
-
-## API
-See [API](https://api.bots.business/docs#/docs/summary)
-
-
-![](https://bots.business/images/web-logo.png)
+---
