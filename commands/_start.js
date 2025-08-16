@@ -21,17 +21,3 @@ function ensureSettingsInitialized() {
 }
 
 if (!ensureSettingsInitialized()) return;
-
-// Update total user count
-function updateTotalUserCount() {
-  const totalUsers = Bot.getProp('total_users', 0);
-  Bot.setProp({
-    name: 'total_users',
-    value: totalUsers + 1,
-    type: "integer"
-  });
-}
-
-if (chat?.just_created && chat?.chat_type === 'private') {
-  updateTotalUserCount();
-}
