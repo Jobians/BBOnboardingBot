@@ -34,20 +34,22 @@ if (!lesson) {
 const step = lesson.steps.find(s => Number(s.stepNumber) === stepNumber);
 if (!step) return; // Should never happen
 
-// Build the step message
-let messageText = `Step ${stepNumber}: ${step.text}`;
+// Build the step message with total steps
+let messageText = `*📘 Step ${stepNumber}/${lesson.steps.length}:* ${step.text}`;
 
-// If it's the first step, add the lesson description
+// Include lesson description only on first step
 if (stepNumber === 1 && lesson.description) {
-  messageText = `📝 ${lesson.description}\n\nStep ${stepNumber}: ${step.text}`;
+  messageText = `📝 *${lesson.description}*\n\n${messageText}`;
 }
 
-// Add optional video and help links
+// Add optional video and help buttons
+const videoHelpRow = [];
+
 if (step.videoUrl) {
-  messageText += `\n\n🎬 [Watch Video](${step.videoUrl})`;
+  videoHelpRow.push({ text: '🎬 Watch Video', url: step.videoUrl });
 }
 if (step.helpText) {
-  messageText += `\n\nℹ️ [Help Article](${step.helpText})`;
+  videoHelpRow.push({ text: 'ℹ️ Help Article', url: step.helpText });
 }
 
 // Clean the message text from Markdown-breaking characters
@@ -94,6 +96,11 @@ if (stepNumber < lesson.steps.length) {
   }
 }
 
+// Add video/help row if any buttons exist
+if (videoHelpRow.length > 0) {
+  buttons.push(videoHelpRow);
+}
+
 // Add navigation buttons if they exist
 if (navButtons.length > 0) {
   buttons.push(navButtons);
@@ -105,53 +112,40 @@ const messageId = request.message.message_id;
 
 // Check if the step has a photo, and whether the original message does too
 const hasPhotoInStep = !!step.photo;
-const originalMessageHadPhoto = !!request.message.photo;
+const originalMessageHadPhoto = Array.isArray(request.message.photo) && request.message.photo.length > 0;
 
-// If the media type has changed (photo <-> no photo), delete and send a new message
-if ((hasPhotoInStep && !originalMessageHadPhoto) || (!hasPhotoInStep && originalMessageHadPhoto)) {
+// Telegram doesn't let us edit a photo message into plain text.
+// So if the old message was a photo but now we just have text, we need to delete & resend.
+if (originalMessageHadPhoto && !hasPhotoInStep) {
   Api.deleteMessage({ chat_id: chatId, message_id: messageId });
-
-  if (hasPhotoInStep) {
-    // Send a new photo message
-    Api.sendPhoto({
-      chat_id: chatId,
-      photo: step.photo,
+  Api.sendMessage({
+    chat_id: chatId,
+    text: messageText,
+    parse_mode: 'Markdown',
+    reply_markup: { inline_keyboard: buttons }
+  });
+} else if (hasPhotoInStep) {
+  // Either updating a photo or turning a text message into a photo.
+  Api.editMessageMedia({
+    chat_id: chatId,
+    message_id: messageId,
+    media: {
+      type: 'photo',
+      media: step.photo,
       caption: messageText,
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: buttons }
-    });
-  } else {
-    // Send a new text message
-    Api.sendMessage({
-      chat_id: chatId,
-      text: messageText,
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: buttons }
-    });
-  }
+      parse_mode: 'Markdown'
+    },
+    reply_markup: { inline_keyboard: buttons }
+  });
 } else {
-  // If media type is same, just edit the message
-  if (hasPhotoInStep) {
-    Api.editMessageMedia({
-      chat_id: chatId,
-      message_id: messageId,
-      media: {
-        type: 'photo',
-        media: step.photo,
-        caption: messageText,
-        parse_mode: 'Markdown'
-      },
-      reply_markup: { inline_keyboard: buttons }
-    });
-  } else {
-    Api.editMessageText({
-      chat_id: chatId,
-      message_id: messageId,
-      text: messageText,
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: buttons }
-    });
-  }
+  // Just updating text
+  Api.editMessageText({
+    chat_id: chatId,
+    message_id: messageId,
+    text: messageText,
+    parse_mode: 'Markdown',
+    reply_markup: { inline_keyboard: buttons }
+  });
 }
 
 // Save user progress
